@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "npx vite",
-    "build": "npx vite build",
+    "build": "npx vite build --base=./",
     "test": "npx elm-test"
   },
   "author": "Kyosuke Fujimoto",
