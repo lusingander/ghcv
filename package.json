@@ -1,0 +1,20 @@
+{
+  "name": "ghcv",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "npx vite",
+    "build": "npx vite build",
+    "test": "npx elm-test"
+  },
+  "author": "Kyosuke Fujimoto",
+  "license": "MIT",
+  "devDependencies": {
+    "elm": "^0.19.1-5",
+    "elm-format": "^0.8.5",
+    "elm-test": "^0.19.1-revision7",
+    "vite": "^2.6.13",
+    "vite-plugin-elm": "^2.5.0"
+  }
+}
