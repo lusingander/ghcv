@@ -1,39 +1,100 @@
-module Main exposing (..)
+module Main exposing (main)
 
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Http
+import Json.Decode as JD
+import Json.Decode.Pipeline as JDP
 
 
-type alias Model =
-    { draft : String
-    , messages : List String
-    }
+main : Program () Model Msg
+main =
+    Browser.element
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        }
+
+
+searchQueryUrl : String
+searchQueryUrl =
+    "https://api.github.com/search/issues?q=author:lusingander+is:pr+-user:lusingander&sort=created&order=desc&per_page=100"
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { draft = "", messages = [] }
-    , Cmd.none
+    ( initModel
+    , Http.get
+        { url = searchQueryUrl
+        , expect = Http.expectJson GotPullRequests pullRequestsDecoder
+        }
     )
 
 
+type alias Model =
+    { status : Status
+    }
+
+
+initModel : Model
+initModel =
+    { status = Loading
+    }
+
+
+type Status
+    = Loading
+    | Failure
+    | Success PullRequests
+
+
+type alias PullRequests =
+    { totalCount : Int
+    , items : List PullRequest
+    }
+
+
+type alias PullRequest =
+    { title : String
+    , url : String
+    }
+
+
+pullRequestsDecoder : JD.Decoder PullRequests
+pullRequestsDecoder =
+    JD.succeed PullRequests
+        |> JDP.required "total_count" JD.int
+        |> JDP.required "items" (JD.list pullRequestDecoder)
+
+
+pullRequestDecoder : JD.Decoder PullRequest
+pullRequestDecoder =
+    JD.succeed PullRequest
+        |> JDP.required "title" JD.string
+        |> JDP.required "html_url" JD.string
+
+
 type Msg
-    = DraftChanged String
-    | Send
+    = GotPullRequests (Result Http.Error PullRequests)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        DraftChanged draft ->
-            ( { model | draft = draft }
+        GotPullRequests (Ok pullRequests) ->
+            ( { model
+                | status = Success pullRequests
+              }
             , Cmd.none
             )
 
-        Send ->
-            ( { model | draft = "", messages = model.draft :: model.messages }
+        GotPullRequests (Err err) ->
+            ( { model
+                | status = Failure
+              }
             , Cmd.none
             )
 
@@ -46,36 +107,44 @@ subscriptions _ =
 view : Model -> Html Msg
 view model =
     div []
-        [ h1
-            [ class "text-3xl bg-blue-300 px-5 py-10" ]
-            [ text "Echo Chat" ]
-        , div
-            [ class "mx-10 my-10" ]
-            [ input
-                [ type_ "text"
-                , placeholder "Draft"
-                , onInput DraftChanged
-                , value model.draft
-                , class "mx-2"
-                ]
-                []
-            , button
-                [ onClick Send
-                , class "bg-purple-200 px-2 py-1 rounded-md"
-                ]
-                [ text "Send" ]
-            , ul
-                [ class "mx-2 my-1" ]
-                (List.map (\msg -> li [] [ text msg ]) model.messages)
-            ]
+        [ viewHeader
+        , viewContent model
         ]
 
 
-main : Program () Model Msg
-main =
-    Browser.element
-        { init = init
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
-        }
+viewHeader : Html msg
+viewHeader =
+    h1
+        [ class "text-2xl bg-blue-300 px-5 py-5" ]
+        [ text "Pull Requests" ]
+
+
+viewContent : Model -> Html msg
+viewContent model =
+    case model.status of
+        Loading ->
+            text ""
+
+        Failure ->
+            text ""
+
+        Success prs ->
+            div
+                [ class "mx-10 my-10" ]
+                [ div [] [ text ("Total: " ++ String.fromInt prs.totalCount) ]
+                , viewPullRequestsList prs
+                ]
+
+
+viewPullRequestsList : PullRequests -> Html msg
+viewPullRequestsList prs =
+    div []
+        [ ul
+            [ class "mx-2 my-1" ]
+            (List.map viewPullRequest prs.items)
+        ]
+
+
+viewPullRequest : PullRequest -> Html msg
+viewPullRequest pr =
+    li [] [ text pr.title ]
