@@ -33,7 +33,7 @@ update msg model =
             )
 
         Send ->
-            ( { model | draft = "", messages = model.messages ++ [ model.draft ] }
+            ( { model | draft = "", messages = model.draft :: model.messages }
             , Cmd.none
             )
 
@@ -46,17 +46,28 @@ subscriptions _ =
 view : Model -> Html Msg
 view model =
     div []
-        [ h1 [] [ text "Echo Chat" ]
-        , input
-            [ type_ "text"
-            , placeholder "Draft"
-            , onInput DraftChanged
-            , value model.draft
+        [ h1
+            [ class "text-3xl bg-blue-300 px-5 py-10" ]
+            [ text "Echo Chat" ]
+        , div
+            [ class "mx-10 my-10" ]
+            [ input
+                [ type_ "text"
+                , placeholder "Draft"
+                , onInput DraftChanged
+                , value model.draft
+                , class "mx-2"
+                ]
+                []
+            , button
+                [ onClick Send
+                , class "bg-purple-200 px-2 py-1 rounded-md"
+                ]
+                [ text "Send" ]
+            , ul
+                [ class "mx-2 my-1" ]
+                (List.map (\msg -> li [] [ text msg ]) model.messages)
             ]
-            []
-        , button [ onClick Send ] [ text "Send" ]
-        , ul []
-            (List.map (\msg -> li [] [ text msg ]) model.messages)
         ]
 
 
