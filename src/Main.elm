@@ -7,6 +7,7 @@ import Html.Events exposing (..)
 import Http
 import Json.Decode as JD
 import Json.Decode.Pipeline as JDP
+import Pr exposing (PullRequest)
 
 
 main : Program () Model Msg
@@ -57,24 +58,11 @@ type alias PullRequests =
     }
 
 
-type alias PullRequest =
-    { title : String
-    , url : String
-    }
-
-
 pullRequestsDecoder : JD.Decoder PullRequests
 pullRequestsDecoder =
     JD.succeed PullRequests
         |> JDP.required "total_count" JD.int
-        |> JDP.required "items" (JD.list pullRequestDecoder)
-
-
-pullRequestDecoder : JD.Decoder PullRequest
-pullRequestDecoder =
-    JD.succeed PullRequest
-        |> JDP.required "title" JD.string
-        |> JDP.required "html_url" JD.string
+        |> JDP.required "items" (JD.list Pr.decoder)
 
 
 type Msg
@@ -91,7 +79,7 @@ update msg model =
             , Cmd.none
             )
 
-        GotPullRequests (Err err) ->
+        GotPullRequests (Err _) ->
             ( { model
                 | status = Failure
               }
